@@ -7,3 +7,7 @@ Get the URL from the green button above. Use your favourite terminal and navigat
 ```bash
   git clone <repo-url>
 ```
+
+## Solution
+
+You can view my solution by click the "solution" branch. Note, I have not been able to implement any fine-grained locking system for the BST.

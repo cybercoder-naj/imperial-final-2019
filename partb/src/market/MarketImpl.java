@@ -1,55 +1,75 @@
 package market;
 
+import datastructures.Stock;
+import datastructures.StockImpl;
 import domain.Agent;
 import domain.producttypes.Product;
+import domain.producttypes.RawMaterial;
 import goods.Laptop;
 import goods.RawAluminium;
 import goods.RawGlass;
+
 import java.util.Optional;
 
 public class MarketImpl implements Market {
 
+  private final Stock<RawGlass> newRawGlass = new StockImpl<>();
+  private final Stock<RawGlass> recycledRawGlass = new StockImpl<>();
+  private final Stock<RawAluminium> newRawAluminium = new StockImpl<>();
+  private final Stock<RawAluminium> recycledRawAluminium = new StockImpl<>();
+  private final Stock<Laptop> newLaptop = new StockImpl<>();
+  private final Stock<Laptop> disposedLaptop = new StockImpl<>();
+
   @Override
   public void sellRawAluminium(RawAluminium item, Agent agent) {
-    // TODO Q2
+    if (item.origin == RawMaterial.Origin.NEW)
+      newRawAluminium.push(item, agent);
+    else
+      recycledRawAluminium.push(item, agent);
   }
 
   @Override
   public Optional<RawAluminium> buyRawAluminium() {
-    // TODO Q2
-    return null;
+    Optional<RawAluminium> recycled = recycledRawAluminium.pop();
+    return recycled.isPresent() ? recycled : newRawAluminium.pop();
   }
 
   @Override
   public void sellRawGlass(RawGlass item, Agent agent) {
-    // TODO Q2
+    if (item.origin == RawMaterial.Origin.NEW)
+      newRawGlass.push(item, agent);
+    else
+      recycledRawGlass.push(item, agent);
   }
 
   @Override
   public Optional<RawGlass> buyRawGlass() {
-    // TODO Q2
-    return null;
+    Optional<RawGlass> recycled = recycledRawGlass.pop();
+    return recycled.isPresent() ? recycled : newRawGlass.pop();
   }
 
   @Override
   public void sellLaptop(Laptop item, Agent agent) {
-    // TODO Q2
+    newLaptop.push(item, agent);
   }
 
   @Override
   public Optional<Laptop> buyLaptop() {
-    // TODO Q2
-    return null;
+    return newLaptop.pop();
   }
 
   @Override
   public void disposeLaptop(Laptop item, Agent agent) {
-    // TODO Q2
+    disposedLaptop.push(item, agent);
   }
 
   @Override
   public Optional<Product> collectDisposedGood() {
-    // TODO Q2
-    return null;
+    Optional<Laptop> laptop = disposedLaptop.pop();
+    if (laptop.isEmpty())
+      return Optional.empty();
+
+    Product p = laptop.get();
+    return Optional.of(p);
   }
 }
