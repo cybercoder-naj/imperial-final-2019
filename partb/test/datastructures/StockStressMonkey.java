@@ -35,7 +35,7 @@ public class StockStressMonkey {
 
   @Before
   public void initializeStock() {
-    stock = new StockImplCourse<>();cd
+    stock = new StockImplCourse<>();
 
     // Comment out the following line if you want to see output on the output stream
     System.setOut(psNull);
