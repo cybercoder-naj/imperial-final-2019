@@ -6,14 +6,7 @@ import domain.producttypes.ExchangeableGood;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
-/*
- * PLEASE NOTE. THIS IS THE FINE GRAINED IMPLEMENTATION
- * IF THIS DOES NOT WORK, PLEASE CONSIDER MY COURSE GRAINED IMPLEMENTATION
- * IN THE SAME PACKAGE.
- */
 public class StockImpl<E extends ExchangeableGood> implements Stock<E> {
 
   private Node<E> root;
@@ -24,41 +17,31 @@ public class StockImpl<E extends ExchangeableGood> implements Stock<E> {
 
   @Override
   public void push(E item, Agent agent) {
-    if (root == null) {
+    Node<E> parent = null;
+    Node<E> current = root;
+
+    while (current != null) {
+      parent = current;
+      if (agent.id < current.key) {
+        current = current.left;
+      } else if (agent.id > current.key) {
+        current = current.right;
+      } else {
+        current.add(item);
+        return;
+      }
+    }
+
+    if (parent == null) {
       root = new Node<>(agent.id, item);
       return;
     }
 
-    push(root, item, agent);
-  }
-
-  private void push(Node<E> subtree, E item, Agent agent) {
-    if (subtree == null) {
-      return;
+    if (agent.id < parent.key) {
+      parent.left = new Node<>(agent.id, item);
+    } else {
+      parent.right = new Node<>(agent.id, item);
     }
-
-    subtree.lock.lock();
-    if (subtree.key == agent.id) {
-      subtree.add(item);
-      return;
-    }
-
-    if (agent.id < subtree.key) {
-      if (subtree.left == null) {
-        subtree.left = new Node<>(agent.id, item);
-      } else {
-        subtree.lock.unlock();
-        push(subtree.left, item, agent);
-      }
-      return;
-    }
-
-    if (subtree.right == null) {
-      subtree.right = new Node<>(agent.id, item);
-      return;
-    }
-    subtree.lock.unlock();
-    push(subtree.right, item, agent);
   }
 
   @Override
@@ -66,38 +49,39 @@ public class StockImpl<E extends ExchangeableGood> implements Stock<E> {
     if (root == null)
       return Optional.empty();
 
-    Node<E> node = root;
     Node<E> parent = null;
-    try {
-      node.lock.lock();
-      while (node.right != null) {
-        if (parent != null)
-          parent.lock.lock();
-        parent = node;
-        node = node.right;
-        node.lock.lock();
-      }
-      Optional<E> item = node.pop();
-
-      if (node.peek().isEmpty()) {
-        if (parent != null) {
-          if (node.left == null) {
-            parent.right = null;
-          } else {
-            parent.right = node.left;
-          }
-        } else {
-          root = root.left;
-        }
-      }
-
-      return item;
-    } finally {
-      if (parent != null) {
-        parent.lock.unlock();
-      }
-      node.lock.unlock();
+    Node<E> current = root;
+    while (current.right != null) {
+      parent = current;
+      current = current.right;
     }
+
+    Optional<E> highest = current.pop();
+    if (current.peek().isEmpty()) {
+      if (parent == null) {
+        root = deleteNode(root);
+      } else {
+        parent.right = deleteNode(parent.right);
+      }
+    }
+    return highest;
+  }
+
+  private Node<E> deleteNode(Node<E> node) {
+    if (node.left != null) {
+      Node<E> replacmentNode = findMaxNode(node.left);
+      replacmentNode.right = node.right;
+      return replacmentNode;
+    }
+    return null;
+  }
+
+  private Node<E> findMaxNode(Node<E> subtree) {
+    Node<E> current = subtree;
+    while (current.right != null) {
+      current = current.right;
+    }
+    return current;
   }
 
   @Override
@@ -107,7 +91,7 @@ public class StockImpl<E extends ExchangeableGood> implements Stock<E> {
 
   @Override
   public String toString() {
-    return "Size " + size();
+    return "size = " + size();
   }
 
   private static class Node<E> {
@@ -116,14 +100,11 @@ public class StockImpl<E extends ExchangeableGood> implements Stock<E> {
     public Node<E> left;
     public Node<E> right;
 
-    public Lock lock;
-
     public Node(int key) {
       this.key = key;
       this.items = new ArrayList<>();
       this.left = null;
       this.right = null;
-      this.lock = new ReentrantLock();
     }
 
     public Node(int key, E item) {
